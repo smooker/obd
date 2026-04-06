@@ -7,6 +7,9 @@ sniff
 *.pcap
 *.pcapng
 
+# PostScript intermediates (PDFs in media/ are kept)
+*.ps
+
 # Python
 __pycache__/
 *.pyc
