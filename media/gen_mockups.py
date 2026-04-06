@@ -27,25 +27,81 @@ BORDER   = (60, 80, 110)
 
 W, H = 1920, 1080
 
-FONT_REG = "/tmp/terminus-n.ttf"
-FONT_BOLD = "/tmp/terminus-b.ttf"
-# Terminus е bitmap → работи добре САМО на native sizes:
-TERMINUS_NATIVE = {12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 44, 48}
-import os.path
-if not os.path.exists(FONT_REG):
-    FONT_REG = "/usr/share/fonts/noto/NotoSansMono-Regular.ttf"
-    FONT_BOLD = "/usr/share/fonts/noto/NotoSansMono-Bold.ttf"
+# --- PCF bitmap text rendering via pcftext (FreeType, native pixels) ---
+import subprocess, tempfile, struct
+PCFDIR = "/home/claude-agent/work/csrecombing/csvision/resources/fonts"
+PCFTEXT = os.path.join(DIR, "pcftext")
+PCF_NATIVE = [12, 14, 16, 18, 20, 22, 24]  # available ter-x{N}{n,b}.pcf.gz
+
+class PCFFont:
+    __slots__ = ("size", "bold")
+    def __init__(self, size, bold):
+        self.size = size
+        self.bold = bold
 
 def font(sz, bold=False):
-    # Snap to nearest Terminus native size if using terminus
-    if "terminus" in FONT_REG:
-        if sz not in TERMINUS_NATIVE:
-            sz = min(TERMINUS_NATIVE, key=lambda x: abs(x - sz))
-    return ImageFont.truetype(FONT_BOLD if bold else FONT_REG, sz)
+    # snap to nearest available PCF strike
+    if sz not in PCF_NATIVE:
+        sz = min(PCF_NATIVE, key=lambda x: abs(x - sz))
+    return PCFFont(sz, bold)
+
+_glyph_cache = {}
+
+def _render_text(text, f):
+    key = (text, f.size, f.bold)
+    if key in _glyph_cache:
+        return _glyph_cache[key]
+    pcf = f"{PCFDIR}/ter-x{f.size}{'b' if f.bold else 'n'}.pcf.gz"
+    with tempfile.NamedTemporaryFile(suffix=".pbm", delete=False) as tf:
+        tmp = tf.name
+    try:
+        out = subprocess.check_output(
+            [PCFTEXT, pcf, str(f.size), text, tmp]).decode().strip()
+        w, h, base = map(int, out.split())
+        with open(tmp, "rb") as fh:
+            line = fh.readline()           # P4
+            line = fh.readline()           # w h (skip comments)
+            while line.startswith(b"#"): line = fh.readline()
+            data = fh.read()
+        # PBM P4: 1 = ink. Build a mask (L) from bits.
+        mask = Image.frombytes("1", (w, h), data).convert("L")
+        _glyph_cache[key] = (mask, w, h, base)
+        return _glyph_cache[key]
+    finally:
+        os.unlink(tmp)
+
+class TextDraw:
+    """Wraps ImageDraw — overrides .text()/.textlength() to use pcftext."""
+    def __init__(self, img):
+        self._img = img
+        self._d = ImageDraw.Draw(img)
+    def __getattr__(self, name):
+        return getattr(self._d, name)
+    def textlength(self, text, font=None, **kw):
+        if isinstance(font, PCFFont) and text:
+            _, w, _, _ = _render_text(text, font)
+            return w
+        return self._d.textlength(text, font=font, **kw)
+    def textbbox(self, xy, text, font=None, **kw):
+        if isinstance(font, PCFFont) and text:
+            _, w, h, _ = _render_text(text, font)
+            x, y = xy
+            return (x, y, x + w, y + h)
+        return self._d.textbbox(xy, text, font=font, **kw)
+    def text(self, xy, text, font=None, fill=(255,255,255), **kw):
+        if not isinstance(font, PCFFont) or not text:
+            return self._d.text(xy, text, font=font, fill=fill, **kw)
+        mask, w, h, base = _render_text(text, font)
+        # PIL d.text uses xy as top-left; same here.
+        x, y = int(xy[0]), int(xy[1])
+        if isinstance(fill, str):
+            fill = (255,255,255)
+        tile = Image.new("RGB", (w, h), fill)
+        self._img.paste(tile, (x, y), mask)
 
 def new_canvas():
     img = Image.new("RGB", (W, H), BG)
-    d = ImageDraw.Draw(img)
+    d = TextDraw(img)
     return img, d
 
 def panel(d, x, y, w, h, title=None, color=CYAN):
@@ -152,17 +208,17 @@ def mockup_01_dashboard():
         d.text((col_x, col_y+18), v, font=font(32, bold=True), fill=col)
         d.text((col_x+140, col_y+38), u, font=font(14), fill=col)
 
-    # ECU map panel — fancy hex grid (16x16, larger cells)
-    panel(d, 40, 460, 1840, 530, "ECU PARAMETER MAP — *608_21_<XX> read commands · 56/256 indices discovered")
+    # ECU map panel — fancy hex grid (16x16) + selected param details strip
+    panel(d, 40, 460, 1300, 530, "ECU PARAMETER MAP — *608_21_<XX> read commands · 56/256 indices")
     f_hex = font(14, bold=True)
     f_lbl = font(12)
     f_val = font(12)
     cols, rows = 16, 16
-    cell_w, cell_h = 110, 28
+    cell_w, cell_h = 76, 28
     start_x, start_y = 90, 510
     # column header
     for c in range(cols):
-        d.text((start_x + c*cell_w + 38, start_y - 22), f"{c:02X}", font=f_lbl, fill=CYAN)
+        d.text((start_x + c*cell_w + 22, start_y - 22), f"{c:02X}", font=f_lbl, fill=CYAN)
     # row labels
     for r in range(rows):
         d.text((start_x - 36, start_y + r*cell_h + 6), f"{r:X}0", font=f_lbl, fill=CYAN)
@@ -184,33 +240,95 @@ def mockup_01_dashboard():
         0xBE:"02DC", 0xBF:"....",
     }
     truncated = {0x01, 0x11, 0x4E, 0x51, 0xA2, 0xA5, 0xA6, 0xBF}
+    selected = 0xB5
     for r in range(rows):
         for c in range(cols):
             idx = r * 16 + c
             x1 = start_x + c*cell_w
             y1 = start_y + r*cell_h
             label = f"{idx:02X}"
-            if idx in truncated:
+            cw = cell_w - 4
+            ch = cell_h - 4
+            if idx == selected:
+                # selected — bright cyan inverted highlight
+                d.rectangle([x1-1, y1-1, x1+cw+1, y1+ch+1], fill=CYAN, outline=CYAN)
+                d.text((x1+5, y1+2), label, font=f_hex, fill=BG)
+                d.text((x1+30, y1+8), known_data.get(idx, ""), font=f_val, fill=BG)
+            elif idx in truncated:
                 col = AMBER
-                d.rectangle([x1, y1, x1+cell_w-6, y1+cell_h-4], outline=col, width=1)
-                d.text((x1+6, y1+2), label, font=f_hex, fill=col)
-                d.text((x1+38, y1+8), "trunc", font=font(12), fill=col)
+                d.rectangle([x1, y1, x1+cw, y1+ch], outline=col, width=1)
+                d.text((x1+5, y1+2), label, font=f_hex, fill=col)
+                d.text((x1+30, y1+8), "···", font=font(12), fill=col)
             elif idx in known_data:
                 col = GREEN
-                d.rectangle([x1, y1, x1+cell_w-6, y1+cell_h-4], fill=(15, 40, 25), outline=col)
-                d.text((x1+6, y1+2), label, font=f_hex, fill=col)
-                d.text((x1+38, y1+8), known_data[idx], font=f_val, fill=WHITE)
+                d.rectangle([x1, y1, x1+cw, y1+ch], fill=(15, 40, 25), outline=col)
+                d.text((x1+5, y1+2), label, font=f_hex, fill=col)
+                d.text((x1+30, y1+8), known_data[idx], font=f_val, fill=WHITE)
             else:
-                d.text((x1+6, y1+2), label, font=f_hex, fill=(40, 55, 75))
+                d.text((x1+5, y1+2), label, font=f_hex, fill=(40, 55, 75))
 
-    # Legend
-    lg_y = 970
+    # Legend below grid
+    lg_y = 968
     d.rectangle([90, lg_y, 110, lg_y+14], fill=(15, 40, 25), outline=GREEN)
-    d.text((118, lg_y), "decoded (56) — first 2 bytes shown", font=font(12), fill=GREEN)
-    d.rectangle([520, lg_y, 540, lg_y+14], outline=AMBER, width=1)
-    d.text((548, lg_y), "truncated — usbmon 32-byte cap (8)", font=font(12), fill=AMBER)
-    d.text((1000, lg_y), "unknown — never read (192)", font=font(12), fill=GREY)
-    d.text((1500, lg_y), "BUS: 7E0/7E8 @ 500kbps", font=font(12), fill=CYAN_DIM)
+    d.text((118, lg_y), "decoded (56)", font=font(12), fill=GREEN)
+    d.rectangle([300, lg_y, 320, lg_y+14], outline=AMBER, width=1)
+    d.text((328, lg_y), "truncated (8)", font=font(12), fill=AMBER)
+    d.rectangle([500, lg_y, 520, lg_y+14], fill=CYAN, outline=CYAN)
+    d.text((528, lg_y), "selected", font=font(12), fill=CYAN)
+    d.text((680, lg_y), "unknown — never read (192)", font=font(12), fill=GREY)
+    d.text((1100, lg_y), "BUS: 500 kbps", font=font(12), fill=CYAN_DIM)
+
+    # ── Right side: SELECTED PARAMETER DETAILS panel ──────────────
+    panel(d, 1360, 460, 520, 530, f"SELECTED — *608_21_B5")
+    sx = 1380
+    sy = 500
+    f = font(14)
+    fb = font(14, bold=True)
+    fH = font(16, bold=True)
+    fXL = font(20, bold=True)
+    rows_det = [
+        ("INDEX",     "0xB5",                CYAN),
+        ("GROUP",     "B0..B9 — injector qty correction", WHITE),
+        ("WORK PT",   "WP5 of 10",           AMBER),
+        ("CMD",       "*608_21_B5\\r",       CYAN),
+        ("RESPONSE",  "*97 181 1 211 1 200", GREEN),
+        ("LENGTH",    "5 bytes",             WHITE),
+        ("FORMAT",    "uint16_be x2",        WHITE),
+    ]
+    for k, v, col in rows_det:
+        d.text((sx, sy), k, font=f, fill=GREY)
+        d.text((sx + 100, sy), v, font=fb, fill=col)
+        sy += 22
+
+    sy += 10
+    d.line([sx, sy, sx + 480, sy], fill=BORDER, width=1); sy += 12
+    d.text((sx, sy), "DECODED VALUES", font=fH, fill=CYAN); sy += 26
+
+    # Two big numeric readouts
+    d.text((sx, sy), "current", font=f, fill=GREY)
+    d.text((sx + 250, sy), "target", font=f, fill=GREY); sy += 18
+    d.text((sx, sy), "467", font=fXL, fill=CYAN)
+    d.text((sx + 250, sy), "456", font=fXL, fill=GREEN); sy += 28
+    d.text((sx, sy), "0x01D3", font=font(12), fill=CYAN_DIM)
+    d.text((sx + 250, sy), "0x01C8", font=font(12), fill=GREEN_DIM); sy += 22
+    d.line([sx, sy, sx + 480, sy], fill=BORDER, width=1); sy += 12
+
+    d.text((sx, sy), "DELTA", font=f, fill=GREY)
+    d.text((sx + 100, sy), "-11", font=fH, fill=AMBER)
+    d.text((sx + 180, sy), "(-2.4 %)", font=f, fill=AMBER); sy += 22
+    d.text((sx, sy), "STATUS", font=f, fill=GREY)
+    d.text((sx + 100, sy), "WITHIN TOLERANCE ±20", font=fb, fill=GREEN); sy += 22
+    d.text((sx, sy), "FRESHNESS", font=f, fill=GREY)
+    d.text((sx + 110, sy), "live (1.2s ago)", font=fb, fill=GREEN); sy += 22
+    d.text((sx, sy), "READS", font=f, fill=GREY)
+    d.text((sx + 100, sy), "247 (in this session)", font=fb, fill=WHITE); sy += 22
+
+    sy += 8
+    d.line([sx, sy, sx + 480, sy], fill=BORDER, width=1); sy += 12
+    d.text((sx, sy), "NOTES", font=f, fill=GREY); sy += 18
+    d.text((sx, sy), "Pattern matches 4N13 / Bosch CR", font=fb, fill=WHITE); sy += 18
+    d.text((sx, sy), "diesel injector calibration. Read", font=fb, fill=WHITE); sy += 18
+    d.text((sx, sy), "during real centering procedure.", font=fb, fill=WHITE)
 
     footer_bar(d, "[F2] Connect  [F5] Refresh map  [F8] Live  [Enter] Inspect param  [Tab] Switch ECU  [/] Filter  [F10] Quit")
     img.save(os.path.join(DIR, "mockup_01_dashboard.png"))
