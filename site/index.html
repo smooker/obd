@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>obd.smooker.org — Linux RE of Autocom CDP+</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="First public open-source reverse engineering of the Autocom CDP+ / Delphi DS150E ASCII diagnostic protocol under Linux. Sniffer, decoder, ECU param map.">
+<style>
+:root {
+  --bg: #0c0e14;
+  --panel: #14181f;
+  --panel-hi: #1c222e;
+  --cyan: #00f0ff;
+  --cyan-dim: #00788c;
+  --green: #50ff8c;
+  --green-dim: #2c8246;
+  --amber: #ffb428;
+  --red: #ff5050;
+  --grey: #788296;
+  --white: #dce6f0;
+  --border: #3c506e;
+}
+* { box-sizing: border-box; }
+html { zoom: 1.5; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--white);
+  font-family: "Terminus", "Courier New", monospace;
+  font-size: 16px;
+  line-height: 1.55;
+}
+body {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 36px 120px;
+}
+header {
+  border-bottom: 1px solid var(--cyan-dim);
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+}
+header h1 {
+  margin: 0 0 4px;
+  color: var(--cyan);
+  font-size: 38px;
+  letter-spacing: -0.5px;
+}
+header .sub {
+  color: var(--green-dim);
+  font-size: 15px;
+}
+header .badges {
+  margin-top: 14px;
+}
+header .badge {
+  display: inline-block;
+  padding: 2px 10px;
+  margin-right: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--green);
+  font-size: 12px;
+}
+h2 {
+  color: var(--cyan);
+  font-size: 24px;
+  margin: 36px 0 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+h3 {
+  color: var(--amber);
+  font-size: 18px;
+  margin: 20px 0 8px;
+}
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+code, pre {
+  font-family: "Terminus", "Courier New", monospace;
+  background: var(--panel);
+  color: var(--green);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+pre {
+  padding: 12px 16px;
+  overflow-x: auto;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  margin: 14px 0;
+  border-radius: 3px;
+}
+.panel.warn { border-color: var(--amber); }
+.panel.warn h3 { color: var(--amber); margin-top: 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 18px;
+  font-size: 15px;
+}
+th, td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  color: var(--cyan);
+  background: var(--panel-hi);
+}
+td code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.mockups figure {
+  margin: 0 0 18px;
+  width: 100%;
+}
+.mockups img,
+.mockups canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  margin: 8px 0;
+  border: 1px solid var(--cyan-dim);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.mockups figcaption {
+  color: var(--grey);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+footer {
+  margin-top: 60px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--grey);
+  font-size: 11px;
+  text-align: center;
+}
+.lead {
+  font-size: 17px;
+  color: var(--white);
+}
+.cyan { color: var(--cyan); }
+.green { color: var(--green); }
+.amber { color: var(--amber); }
+.grey { color: var(--grey); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>■ obd.smooker.org</h1>
+  <div class="sub">Linux reverse engineering of the Autocom CDP+ / Delphi DS150E ASCII diagnostic protocol</div>
+  <div class="badges">
+    <span class="badge">GPL-3.0</span>
+    <span class="badge">first public RE</span>
+    <span class="badge">USB · CAN · UDS</span>
+    <span class="badge">2026-04-06</span>
+  </div>
+</header>
+
+<p class="lead">
+A small open-source toolkit for sniffing, decoding and (eventually) replaying
+the proprietary text-based protocol used by the popular <strong>Autocom CDP+</strong>
+diagnostic dongle (also sold as Delphi DS150E and many clones, USB ID
+<code>0403:d6da</code>). The internal STM32 talks a custom <code>*cmd_args\r</code>
+ASCII protocol over an FTDI bulk pipe — fully readable, no obfuscation, but
+until now nobody had publicly documented it for Linux.
+</p>
+
+<h2>Project</h2>
+<ul>
+  <li>Repository: <a href="https://github.com/smooker/obd">github.com/smooker/obd</a></li>
+  <li>License: GPL-3.0 (code) — protocol findings are facts, not copyrightable</li>
+  <li>Status: live work in progress, first capture decoded</li>
+</ul>
+
+<h2>Tools</h2>
+<table>
+<tr><th>file</th><th>purpose</th></tr>
+<tr><td><code>sniff.c</code></td><td>200-line C/libpcap USB sniffer, full payload, optional pcap output</td></tr>
+<tr><td><code>sniff_full.py</code></td><td>Python alternative — binary usbmon, no libpcap dependency</td></tr>
+<tr><td><code>autocom_sniff.sh</code></td><td>bash quick-look — text-mode usbmon (32-byte truncated, see below)</td></tr>
+<tr><td><code>decode.py</code></td><td>parses usbmon text dump into readable <code>→/←</code> format</td></tr>
+<tr><td><code>ANALYSE.md</code></td><td>full protocol analysis: commands, responses, ECU param map</td></tr>
+<tr><td><code>gen_report.py</code></td><td>pslib-based diagnostic PDF report generator</td></tr>
+</table>
+
+<h2>The protocol, in one paragraph</h2>
+<pre>*&lt;cmd&gt;[_&lt;arg&gt;[_&lt;arg&gt;…]]\r          host  → dongle
+*&lt;resp&gt;[ &lt;data&gt;…]\r                  dongle → host</pre>
+
+<p>Start byte <code>*</code>, terminator <code>\r</code>, fields separated
+by <code>_</code>. The dongle wraps CAN frames (and other low-level protocol
+frames) inside this text envelope.</p>
+
+<h3>Confirmed commands</h3>
+<table>
+<tr><th>cmd</th><th>meaning</th></tr>
+<tr><td><code>*200 / *201 / *20A</code></td><td>get serial / firmware / device name (returns <code>100251 / 1622 / CDP+</code>)</td></tr>
+<tr><td><code>*203</code></td><td><strong>battery voltage</strong> in mV/10 (e.g. <code>*1 1366</code> = 13.66 V)</td></tr>
+<tr><td><code>*60b / *60bc</code></td><td>init handshake</td></tr>
+<tr><td><code>*668_&lt;bus&gt;_&lt;rate&gt;_&lt;txid&gt;_&lt;rxid&gt;_…</code></td><td>configure CAN bus (500 kbps, 7E0/7E8 OBD-II)</td></tr>
+<tr><td><code>*606&lt;slot&gt;_&lt;canid&gt;_&lt;8 bytes&gt;_&lt;chk&gt;\r</code></td><td><strong>periodic CAN slot</strong> (UDS Tester Present keepalive)</td></tr>
+<tr><td><code>*608_21_&lt;XX&gt;</code></td><td><strong>read ECU parameter</strong> at index XX</td></tr>
+<tr><td><code>*97 XX &lt;bytes&gt;</code></td><td>response to <code>*608_21_XX</code></td></tr>
+</table>
+
+<h2>First subject: Mitsubishi ASX 1.8 DiD (4N13)</h2>
+
+<p>The first capture was made on a 2014 Mitsubishi ASX with the 4N13 1.8-litre
+diesel, during an injector centering operation in the original Windows software
+(running inside a Linux KVM with USB passthrough). 119,000 USB packets in
+~12 minutes.</p>
+
+<p><strong>56 unique ECU parameter indices</strong> were polled by the
+"read all parameters" function in 5–6 seconds, giving us a near-complete
+view of the live data set this ECU exposes.</p>
+
+<h3>Highlight: injector quantity correction (B0..B9)</h3>
+<p>Ten parameters in the <code>0xB0–0xB9</code> range, each returning a 4-byte
+field decoded as two 16-bit big-endian values. Pattern, value range and
+timing all match a textbook <strong>injector quantity correction table</strong>
+(10 work points × 2 values, current vs target). Captured live during a real
+centering procedure.</p>
+
+<table>
+<tr><th>WP</th><th>raw bytes</th><th>val 1</th><th>val 2</th><th>Δ</th></tr>
+<tr><td>B0</td><td><code>01EB 01E2</code></td><td>491</td><td>482</td><td class="green">−9</td></tr>
+<tr><td>B1</td><td><code>01DF 01D5</code></td><td>479</td><td>469</td><td class="green">−10</td></tr>
+<tr><td>B2</td><td><code>01DA 01DA</code></td><td>474</td><td>474</td><td class="green">0</td></tr>
+<tr><td>B3</td><td><code>01D1 01CE</code></td><td>465</td><td>462</td><td class="green">−3</td></tr>
+<tr><td>B4</td><td><code>01D0 01CA</code></td><td>464</td><td>458</td><td class="green">−6</td></tr>
+<tr><td>B5</td><td><code>01D3 01C8</code></td><td>467</td><td>456</td><td class="amber">−11</td></tr>
+<tr><td>B6</td><td><code>01CA 01CB</code></td><td>458</td><td>459</td><td class="green">+1</td></tr>
+<tr><td>B7</td><td><code>01D4 01CE</code></td><td>468</td><td>462</td><td class="green">−6</td></tr>
+<tr><td>B8</td><td><code>01B8 01C4</code></td><td>440</td><td>452</td><td class="amber">+12</td></tr>
+<tr><td>B9</td><td><code>01C9 01C2</code></td><td>457</td><td>450</td><td class="green">−7</td></tr>
+</table>
+
+<h2>Mockups</h2>
+<div class="mockups">
+  <figure>
+    <canvas data-src="media/mockup_01_dashboard.png" aria-label="Dashboard mockup"></canvas>
+    <figcaption>Dashboard — vehicle info, live telemetry gauges, 16×16 ECU parameter map (56/256 decoded).</figcaption>
+  </figure>
+  <figure>
+    <canvas data-src="media/mockup_02_injectors.png" aria-label="Injector calibration mockup"></canvas>
+    <figcaption>Injector calibration — B0..B9 quantity correction bar chart with raw data table and stats.</figcaption>
+  </figure>
+  <figure>
+    <canvas data-src="media/mockup_03_sniff.png" aria-label="Protocol monitor mockup"></canvas>
+    <figcaption>Protocol monitor — live USB feed with ASCII decoder side panel showing the *606 UDS TesterPresent slot.</figcaption>
+  </figure>
+</div>
+
+<div class="panel warn">
+  <h3>⚠ Disclaimer</h3>
+  <p>Reverse engineering for <strong>interoperability and educational purposes</strong>
+  (EU Software Directive 2009/24/EC Art. 6). Not affiliated with Autocom, Delphi
+  or any OEM. The CDP+ dongle uses internal relays to switch between automotive
+  protocols and power lines — wrong commands can pull pins to 12 V where they
+  shouldn't be and damage the dongle, OBD connector or ECU. Replay only
+  byte-perfect captured sequences. <strong>Use at your own risk.</strong></p>
+</div>
+
+<h2>Roadmap</h2>
+<ul>
+  <li>✅ Sniff full USB traffic without truncation</li>
+  <li>✅ Decode the ASCII protocol structure</li>
+  <li>✅ Document known commands and responses</li>
+  <li>⬜ Clean cold-boot init capture (before Win VM USB attach)</li>
+  <li>⬜ Bench replay tool — reproduce captured init</li>
+  <li>⬜ Minimal Linux client — read VIN, read DTC, clear DTC, live data PIDs</li>
+  <li>⬜ K-line / ISO 9141 protocol support for older cars</li>
+  <li>⬜ Native pslib diagnostic report generator integrated in client</li>
+</ul>
+
+<footer>
+  obd.smooker.org · part of the smooker.org infrastructure ·
+  <a href="https://github.com/smooker/obd">github.com/smooker/obd</a> ·
+  GPL-3.0
+</footer>
+
+<script>
+// pixel-perfect mockup rendering: load PNG into canvas at native size,
+// let CSS scale the canvas — image-rendering: pixelated/crisp-edges is
+// honored on canvas downscale (unlike <img>) in all major browsers.
+for (const c of document.querySelectorAll('canvas[data-src]')) {
+  const img = new Image();
+  img.onload = () => {
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = c.dataset.src;
+  c.style.cursor = 'zoom-in';
+  c.addEventListener('click', () => {
+    const im = new Image();
+    im.onload = () => {
+      const w = window.open('', '_blank',
+        `popup,width=${im.naturalWidth+40},height=${im.naturalHeight+80}`);
+      if (!w) return;
+      w.document.write(`<!doctype html><html><head><title>${c.dataset.src}</title>
+<style>html,body{margin:0;background:#0c0e14}
+canvas{display:block;margin:20px auto;image-rendering:pixelated;border:1px solid #00788c}
+</style></head><body><canvas id=c></canvas><script>
+var i=new Image();i.onload=function(){var c=document.getElementById('c');
+c.width=i.naturalWidth;c.height=i.naturalHeight;
+var x=c.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(i,0,0);};
+i.src=${JSON.stringify(c.dataset.src.startsWith('http')?c.dataset.src:location.href.replace(/[^/]*$/,'')+c.dataset.src)};
+<\/script></body></html>`);
+      w.document.close();
+    };
+    im.src = c.dataset.src;
+  });
+}
+
+// Lightbox overlay — native-size pixel-perfect view, click/Esc to close
+function openLightbox(src) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);'
+    + 'z-index:9999;display:flex;align-items:center;justify-content:center;'
+    + 'overflow:auto;cursor:zoom-out;';
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0);
+    cv.style.imageRendering = 'pixelated';
+    cv.style.maxWidth = 'none';
+    cv.style.border = '1px solid #00788c';
+    ov.appendChild(cv);
+  };
+  img.src = src;
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  ov.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+}
+</script>
+</body>
+</html>
