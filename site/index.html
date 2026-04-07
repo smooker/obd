@@ -327,7 +327,7 @@ var i=new Image();i.onload=function(){var c=document.getElementById('c');
 c.width=i.naturalWidth;c.height=i.naturalHeight;
 var x=c.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(i,0,0);};
 i.src=${JSON.stringify(c.dataset.src.startsWith('http')?c.dataset.src:location.href.replace(/[^/]*$/,'')+c.dataset.src)};
-<\/script></body></html>`);
+<\/script><\/body><\/html>`);
       w.document.close();
     };
     im.src = c.dataset.src;
