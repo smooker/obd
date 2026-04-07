@@ -59,8 +59,9 @@ def main():
     except Exception as e:
         print(f"warn: ring size ioctl: {e}")
 
-    bf = open(binfile, "wb")
-    tf = open(txtfile, "w")
+    # bf unbuffered: на kill (auto-logout, OOM, panic) нищо не се губи
+    bf = open(binfile, "wb", buffering=0)
+    tf = open(txtfile, "w", buffering=1)  # line-buffered
 
     # Binary mon header is 48 bytes; data follows. Format:
     #  u64 id, u8 type, u8 xfer_type, u8 epnum, u8 devnum, u16 busnum, s8 flag_setup, s8 flag_data,
