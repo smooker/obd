@@ -86,8 +86,14 @@ payloads, and optionally writes a `.pcap` for Wireshark.
 
 ```sh
 gcc -O2 -Wall -o sniff sniff.c -lpcap
-sudo ./sniff -d 25 -o asx.pcap
+sudo ./sniff                    # stdout only
+sudo ./sniff -w asx.pcap        # + pcap file for Wireshark
 ```
+
+The sniffer auto-discovers the Autocom dongle via `lsusb` (looks for
+`0403:d6da`) and filters by its device address. If the dongle is not
+present at start, it falls back to listening on `usbmon1` without a
+device filter — useful for catching the cold-init enumerate.
 
 Open `asx.pcap` in Wireshark — set `Decode As → USB → FTDI`.
 

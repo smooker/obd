@@ -1,20 +1,4 @@
-# Compiled binary
 sniff
-
-# Captures (large, may contain VINs / serials)
-*.txt
-*.bin
-*.pcap
-*.pcapng
-
-# PostScript intermediates (PDFs in media/ are kept)
-*.ps
-
-# Python
 __pycache__/
 *.pyc
-
-# Editor
-*.swp
-*~
-.vscode/
+*.pcap
