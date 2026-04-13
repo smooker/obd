@@ -2,3 +2,6 @@ sniff
 __pycache__/
 *.pyc
 *.pcap
+captures/*.bin
+captures/*.txt
+!captures/.gitkeep

@@ -534,7 +534,7 @@ def mockup_03_sniff():
     f_mono = font(14)
     fb_mono = font(14, bold=True)
     for i, (ts, ar, payload, col) in enumerate(feed):
-        y = 304 + i*22
+        y = 304 + i*21
         d.text((60, y), ts, font=f_mono, fill=GREY)
         d.text((180, y), ar, font=fb_mono, fill=col)
         d.text((204, y), payload, font=f_mono, fill=col)
