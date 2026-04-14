@@ -140,6 +140,22 @@ push-ване още. Repo координати са налични за мом�
 - Софтуерът ползва `9mit_engine_4n14` profile (4N13 и 4N14 споделят платформа)
 - Outlander profiles покриват: ABS, AC, gearbox, meter, SRS, ETACS, AWC, KOS/IMMO
 
+### ECU — DENSO 275700-4772 / 1860C480
+- MCU: Renesas V850ES/Fx3 (R4F70580SV), 1MB flash, 93C86 EEPROM
+- CAN: 500 kbps, standard 11-bit IDs, 7E0/7E8 (engine ECU), UDS (ISO 14229)
+- Injector: DENSO 295050-0120 / 1465A323, QR code 30 chars
+- Подробна документация: `ecu/` директория (PIDs, DPF, flash, pinout, DTC)
+
+### DPF система
+- Диференциален pressure sensor: 1865A210 / 1865A184
+- EGT сензори: pre-catalyst, pre-DPF, post-DPF
+- Soot thresholds: 45% → active regen, 75% → forced regen warning, 85% → replace
+- **Active regen** (от ECU на движение): ~600°C, ~10 мин при натоварване
+- **Forced (service) regen** (на място, празен ход, през MUT-III/DS150E): ~600°C, ~25 мин
+  - UDS service $31 routineControl, exact routine ID — proprietary (TODO: снемане от capture)
+- Стандартен OBD2 PID $7C (service $01) — DPF differential pressure
+- TODO: първи тест на колата — чети диф. налягане и soot level
+
 ## Какво НЕ е принцип
 
 - **Изкуствени лимити по дължина** (напр. "C source < 200 реда"). Не са
