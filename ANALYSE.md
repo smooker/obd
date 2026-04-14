@@ -313,6 +313,96 @@ permissions или wireshark пакета без USB capture support. Не см�
 
 ---
 
+## Firmware анализ (2026-04-14)
+
+### Два варианта hardware
+
+**FIRMCDP.H86 (CDP — по-старият):**
+- НЕ е ARM — pattern `FA 03 00 01` с `FA`/`EA` opcodes
+- Вероятно Infineon C166/XC167 (16-bit automotive MCU) или custom packed формат
+- 234KB, адресен диапазон 0x00000000 - 0x00060000
+- firmware_version_vci=1621
+
+**OBD_VCI+.hex (VCI+ — по-новият, нашият):**
+- **STM32** ARM Cortex-M
+- SP=0x20017100 (92KB SRAM), Reset=0x0803BA4D
+- 511KB flash, build Jun 21 2016, Release
+- firmware_version_vci_plus=1622
+- Интерфейси: USB (FTDI FT232R), Bluetooth, SD-card, CAN, KWP2000, J1587/J1939
+
+### Нови команди от firmware string dump
+
+**Self-test серия `*918x`** (вътрешна диагностика, без кола):
+
+| Команда | Отговор | Описание |
+|---------|---------|----------|
+| `*918A` | `*918A_OK` / `*918A_FAIL` | Self-test A |
+| `*918B` | `*918B_OK` / `*918B_FAIL` | Self-test B |
+| `*918C` | `*918C_OK` / `*918C_FAIL` | Self-test C |
+| `*918D` | `*918D_OK` | Self-test D |
+| `*918E` | `*918E_OK` | Self-test E |
+| `*918F` | `*918F_OK` / `*918F_FAIL` | Self-test F |
+
+**Bluetooth контрол:**
+- `*Wireless com enabled` — BT включен
+- `*Wireless com disabled` — BT изключен
+
+**CAN frame шаблони (хардкоднати в firmware):**
+```
+608h31 B8 00 00#
+608h31 B8 01 03#
+608h31 BA 01 03#
+608h31 B9 01 03 02#
+608h31 B9 01 03 00 00#
+608h31 BB 01 03 00 00 00 06 46 22 00 BA#
+608h32 B8 01 03#
+```
+
+**`*609` разширен формат:**
+```
+*609MH_41_81_9B&4A_&4_&5_&6_&7+2C_&#02
+```
+Използва `&` за field reference, `+` за конкатенация, `#` за терминатор.
+
+**Други команди:**
+
+| Команда | Описание |
+|---------|----------|
+| `*9999` | ? (test/reset?) |
+| `*F1F5` / `*F0F5` | ? (mode switch?) |
+| `*911` / `*912` | ? |
+| `*No parameter selected` | няма избран ECU параметър |
+| `*PID list erased!` | PID списък изтрит |
+| `*Enabled` / `*Disabled` | toggle отговор |
+
+**Грешки:**
+- `*KW1 & KW2 error` — KWP2000 keyword mismatch
+- `*No answer to init!` / `*No response to ECU init` — ECU timeout
+- `*No respons to 5baud!` — ISO 5-baud init fail
+- `*Timeout waiting for KW1&KW2` — KWP2000 timeout
+- `*Keep alive message error` — Tester Present fail
+- `*ArbId error` — CAN arbitration ID error
+- `*Wrong cable!` — грешен OBD кабел
+- `*Unsupported voltage` — напрежение извън обхват
+
+### Autocom 2021.11 Software reverse engineering
+
+**Пароли:**
+- `Autocom186` — SQL Server password (VehicleSelection.dll)
+- `kwH2eae7Rpshm7S` — SQL CE password (Text.dll)
+
+**Файлови формати:**
+- `.acz` — ZIP контейнер с AES-криптирани файлове + GZip компресия (Core.Crypto.Lib.dll)
+- `.sdf` — SQL Server Compact, `encryption mode=ppc2003 compatibility`
+- `Scan.mdb` — Access DB (некриптиран), vehicle profiles
+
+**Vehicle profiles за Mitsubishi:**
+- `9mit_engine_4n14_000a` — 4N14/4N13 двигател (ASX/Outlander)
+- `9mitengine4n14_0008` — по-стара версия
+- Outlander profiles: ABS, AC, gearbox, meter, SRS, ETACS, AWC, KOS/IMMO
+
+---
+
 ## Следваща капитулация (TODO)
 
 1. **Чист init capture**: пуснем `sniff_full.py` ПРЕДИ да attach-нем USB-то

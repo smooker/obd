@@ -102,6 +102,44 @@ push-ване още. Repo координати са налични за мом�
 - GitHub mirror: `git@github-obd:smooker/obd.git` (НЕ push без потвърждение)
 - Git user: `smooker <smooker@smooker.org>`
 
+## Stage 2 — Active client (2026-04-14)
+
+Преминахме на Stage 2. Директна комуникация с DS150E без Windows VM.
+
+### FTDI serial setup
+- Device: `0403:d6da` (Autocom CDP+ USB), FTDI FT232R
+- Baud: **115200** 8N1, DTR+RTS high, no flow control (потвърдено от usbmon capture)
+- Kernel: `ftdi_sio` модул, custom ID: `echo 0403 d6da > /sys/bus/usb-serial/drivers/ftdi_sio/new_id`
+- STM32 се захранва от OBD конектор (12V), не от USB! Без кола = FTDI жив, STM32 мъртъв.
+- BT MAC кандидат: `21:61:5C:AA:AC:65` (LE advertising дори от USB захранване, изчезва при disconnect)
+
+### Tools
+- `tools/ds150e.c` — C client за директна serial комуникация
+- `tools/go.sh` — launcher (ftdi_sio load, custom ID, compile, run)
+- `tools/compile.sh` — build script
+- `tools/acz_decrypt.py` — .acz/.sdf analysis tool
+
+### Autocom 2021.11 Software reverse engineering
+- Source: Win7 qcow2 image → `files/Autocom 2021.11 Software/`
+- Obfuscation: .NET Reactor + CryptoObfuscator
+- **Passwords found:**
+  - `Autocom186` — SQL Server password (VehicleSelection.dll)
+  - `kwH2eae7Rpshm7S` — SQL CE password (Text.dll)
+- `.acz` files: AES encrypted + GZip (Core.Crypto.Lib.dll, PBKDF2 key derivation)
+- `.sdf` files: SQL Server Compact, `encryption mode=ppc2003 compatibility`
+- `Scan.mdb`: Access DB (unencrypted) — vehicle profiles, Mitsubishi = `9mit_engine_4n14`
+
+### Firmware
+- `firmware/` directory for analysis
+- `FIRMCDP.H86` — NOT ARM! Pattern `FA`/`EA` → possibly C166/XC167 (Infineon 16-bit automotive MCU) or custom packed format
+- `OBD_VCI+.hex` — **STM32** (ARM Cortex-M). SP=0x20017100 (~92KB SRAM), reset=0x0803BA4D. Likely STM32F1xx high-density or STM32F2xx.
+- `Firm.info`: firmware_version_vci=1621, firmware_version_vci_plus=1622
+
+### Mitsubishi ASX / Outlander
+- Кола: Mitsubishi ASX 2014, 1.8 DiD (4N13), AWD
+- Софтуерът ползва `9mit_engine_4n14` profile (4N13 и 4N14 споделят платформа)
+- Outlander profiles покриват: ABS, AC, gearbox, meter, SRS, ETACS, AWC, KOS/IMMO
+
 ## Какво НЕ е принцип
 
 - **Изкуствени лимити по дължина** (напр. "C source < 200 реда"). Не са

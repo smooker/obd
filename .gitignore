@@ -5,3 +5,15 @@ __pycache__/
 captures/*.bin
 captures/*.txt
 !captures/.gitkeep
+
+# Binary / large files
+*.qcow2
+*.bin
+firmware/*.bin
+tools/ds150e
+
+# Extracted Windows software (large)
+files/Autocom 2021.11 Software/
+files/ProgramData_Autocom/
+files/obd_acz/
+files/mnt/

@@ -1,0 +1,150 @@
+=== BT Diagnostics — Tue Apr 14 19:48:31 EEST 2026 ===
+
+--- hciconfig ---
+hci0:	Type: Primary  Bus: USB
+	BD Address: 64:BC:58:46:68:5F  ACL MTU: 1021:4  SCO MTU: 96:6
+	UP RUNNING PSCAN 
+	RX bytes:22315 acl:0 sco:0 events:3459 errors:0
+	TX bytes:817293 acl:0 sco:0 commands:3459 errors:0
+	Features: 0xbf 0xfe 0x0f 0xfe 0xdb 0xff 0x7b 0x87
+	Packet type: DM1 DM3 DM5 DH1 DH3 DH5 HV1 HV2 HV3 
+	Link policy: RSWITCH SNIFF 
+	Link mode: PERIPHERAL ACCEPT 
+	Name: 'BlueZ 5.86'
+	Class: 0x00010c
+	Service Classes: Unspecified
+	Device Class: Computer, Laptop
+	HCI Version: 5.2 (0xb)  Revision: 0x2253
+	LMP Version: 5.2 (0xb)  Subversion: 0x2253
+	Manufacturer: Intel Corp. (2)
+
+
+--- rfkill ---
+0: phy0: Wireless LAN
+	Soft blocked: no
+	Hard blocked: no
+2: tpacpi_bluetooth_sw: Bluetooth
+	Soft blocked: no
+	Hard blocked: no
+3: hci0: Bluetooth
+	Soft blocked: no
+	Hard blocked: no
+
+--- bluetoothd process ---
+root      762918  0.0  0.0   7036  4872 ?        Ss   19:47   0:00 /usr/libexec/bluetooth/bluetoothd
+
+--- bluetoothctl list ---
+
+--- bluetoothctl show ---
+
+--- btmgmt info ---
+
+--- btmgmt index-info 0 ---
+
+--- /sys/class/bluetooth ---
+total 0
+drwxr-xr-x  2 root root 0 Apr 14 19:48 .
+drwxr-xr-x 85 root root 0 Apr 14 13:26 ..
+lrwxrwxrwx  1 root root 0 Apr 14 19:48 hci0 -> ../../devices/pci0000:00/0000:00:14.0/usb1/1-14/1-14:1.0/bluetooth/hci0
+
+--- /sys/class/bluetooth/hci0 ---
+total 0
+drwxr-xr-x 4 root root    0 Apr 14 19:48 .
+drwxr-xr-x 3 root root    0 Apr 14 19:44 ..
+lrwxrwxrwx 1 root root    0 Apr 14 19:48 device -> ../../../1-14:1.0
+drwxr-xr-x 2 root root    0 Apr 14 19:48 power
+--w------- 1 root root 4096 Apr 14 19:48 reset
+drwxr-xr-x 3 root root    0 Apr 14 19:44 rfkill3
+lrwxrwxrwx 1 root root    0 Apr 14 19:44 subsystem -> ../../../../../../../../class/bluetooth
+-rw-r--r-- 1 root root 4096 Apr 14 19:44 uevent
+
+--- hci0 sysfs info ---
+  uevent: DEVTYPE=host
+
+--- USB BT device ---
+Bus 001 Device 031: ID 8087:0029 Intel Corp. AX200 Bluetooth
+  idVendor           0x8087 Intel Corp.
+  idProduct          0x0029 AX200 Bluetooth
+  bcdDevice            0.01
+  iManufacturer           0 
+  iProduct                0 
+  iSerial                 0 
+
+--- kernel modules ---
+(all built-in)
+CONFIG_BT=y
+CONFIG_BT_BREDR=y
+CONFIG_BT_RFCOMM=y
+CONFIG_BT_RFCOMM_TTY=y
+CONFIG_BT_BNEP=y
+CONFIG_BT_BNEP_MC_FILTER=y
+CONFIG_BT_BNEP_PROTO_FILTER=y
+CONFIG_BT_LE=y
+CONFIG_BT_LE_L2CAP_ECRED=y
+CONFIG_BT_LEDS=y
+CONFIG_BT_MSFTEXT=y
+CONFIG_BT_AOSPEXT=y
+CONFIG_BT_INTEL=y
+CONFIG_BT_BCM=y
+CONFIG_BT_RTL=y
+CONFIG_BT_MTK=y
+CONFIG_BT_HCIBTUSB=y
+CONFIG_BT_HCIBTUSB_AUTOSUSPEND=y
+CONFIG_BT_HCIBTUSB_POLL_SYNC=y
+CONFIG_BT_HCIBTUSB_BCM=y
+
+--- dbus bluetooth ---
+method return time=1776185311.443641 sender=:1.170 -> destination=:1.174 serial=28 reply_serial=2
+   array [
+      dict entry(
+         object path "/org/bluez"
+         array [
+            dict entry(
+               string "org.freedesktop.DBus.Introspectable"
+               array [
+               ]
+            )
+            dict entry(
+               string "org.bluez.AgentManager1"
+               array [
+               ]
+            )
+            dict entry(
+               string "org.bluez.ProfileManager1"
+               array [
+               ]
+            )
+         ]
+      )
+      dict entry(
+         object path "/org/bluez/hci0"
+         array [
+            dict entry(
+               string "org.freedesktop.DBus.Introspectable"
+               array [
+               ]
+            )
+
+--- dmesg bluetooth (last 20) ---
+[22677.566984] Bluetooth: hci0: MSFT extension not registered
+[22678.110417] Bluetooth: hci0: Bootloader revision 0.3 build 0 week 24 2017
+[22678.111419] Bluetooth: hci0: Device revision is 1
+[22678.111421] Bluetooth: hci0: Secure boot is enabled
+[22678.111422] Bluetooth: hci0: OTP lock is enabled
+[22678.111423] Bluetooth: hci0: API lock is enabled
+[22678.111423] Bluetooth: hci0: Debug lock is disabled
+[22678.111424] Bluetooth: hci0: Minimum firmware build 1 week 10 2014
+[22678.113292] Bluetooth: hci0: Found device firmware: intel/ibt-20-1-3.sfi
+[22678.113343] Bluetooth: hci0: Boot Address: 0x24800
+[22678.113344] Bluetooth: hci0: Firmware Version: 255-255.255
+[22680.326621] Bluetooth: hci0: Waiting for firmware download to complete
+[22680.327419] Bluetooth: hci0: Firmware loaded in 2162233 usecs
+[22680.327519] Bluetooth: hci0: Waiting for device to boot
+[22680.342467] Bluetooth: hci0: Device booted in 14653 usecs
+[22680.342498] Bluetooth: hci0: Found Intel DDC parameters: intel/ibt-20-1-3.ddc
+[22680.344486] Bluetooth: hci0: Applying Intel DDC parameters completed
+[22680.345460] Bluetooth: hci0: Firmware revision 0.3 build 83 week 7 2026
+[22680.347481] Bluetooth: hci0: HCI LE Coded PHY feature bit is set, but its usage is not supported.
+[22773.711157] Bluetooth: MGMT ver 1.23
+
+=== DONE ===

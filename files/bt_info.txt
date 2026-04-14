@@ -1,0 +1,131 @@
+hci0:	Type: Primary  Bus: USB
+	BD Address: 64:BC:58:46:68:5F  ACL MTU: 1021:4  SCO MTU: 96:6
+	DOWN 
+	RX bytes:21250 acl:0 sco:0 events:3317 errors:0
+	TX bytes:813864 acl:0 sco:0 commands:3312 errors:0
+	Features: 0xbf 0xfe 0x0f 0xfe 0xdb 0xff 0x7b 0x87
+	Packet type: DM1 DM3 DM5 DH1 DH3 DH5 HV1 HV2 HV3 
+	Link policy: RSWITCH SNIFF 
+	Link mode: PERIPHERAL ACCEPT 
+
+[    1.245932] ACPI: [Firmware Bug]: BIOS _OSI(Linux) query honored via cmdline
+[    1.589259] Bluetooth: Core ver 2.22
+[    1.589292] NET: Registered PF_BLUETOOTH protocol family
+[    1.589301] Bluetooth: HCI device and connection manager initialized
+[    1.589312] Bluetooth: HCI socket layer initialized
+[    1.589320] Bluetooth: L2CAP socket layer initialized
+[    1.589332] Bluetooth: SCO socket layer initialized
+[    2.173478] Loading firmware: i915/kbl_dmc_ver1_04.bin
+[    2.173572] i915 0000:00:02.0: Direct firmware load for i915/kbl_dmc_ver1_04.bin failed with error -2
+[    2.173589] i915 0000:00:02.0: [drm] Failed to load DMC firmware i915/kbl_dmc_ver1_04.bin (-ENOENT). Disabling runtime power management.
+[    2.173604] i915 0000:00:02.0: [drm] DMC firmware homepage: https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+[    2.229548] ACPI: video: [Firmware Bug]: ACPI(PEGP) defines _DOD but not _DOS
+[    3.837525] Loading firmware: iwlwifi-cc-a0-77.ucode
+[    3.841477] xhci_hcd 0000:00:14.0: xHCI Host Controller
+[    3.844850] xhci_hcd 0000:00:14.0: new USB bus registered, assigned bus number 1
+[    3.849219] xhci_hcd 0000:00:14.0: hcc params 0x200077c1 hci version 0x110 quirks 0x0000000000009810
+[    3.853170] xhci_hcd 0000:00:14.0: xHCI Host Controller
+[    3.856533] xhci_hcd 0000:00:14.0: new USB bus registered, assigned bus number 2
+[    3.856569] Loading firmware: iwl-debug-yoyo.bin
+[    3.859703] xhci_hcd 0000:00:14.0: Host supports USB 3.1 Enhanced SuperSpeed
+[    3.862931] iwlwifi 0000:52:00.0: loaded firmware version 77.f39cc7f9.0 cc-a0-77.ucode op_mode iwlmvm
+[    3.878929] usb usb1: Product: xHCI Host Controller
+[    3.882050] usb usb1: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    3.910228] usb usb2: Product: xHCI Host Controller
+[    3.913214] usb usb2: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    3.931610] xhci_hcd 0000:01:00.2: xHCI Host Controller
+[    3.934792] xhci_hcd 0000:01:00.2: new USB bus registered, assigned bus number 3
+[    3.938408] xhci_hcd 0000:01:00.2: hcc params 0x0180ff05 hci version 0x110 quirks 0x0000000000000010
+[    3.941789] xhci_hcd 0000:01:00.2: xHCI Host Controller
+[    3.944945] xhci_hcd 0000:01:00.2: new USB bus registered, assigned bus number 4
+[    3.948155] xhci_hcd 0000:01:00.2: Host supports USB 3.1 Enhanced SuperSpeed
+[    3.956964] usb usb3: Product: xHCI Host Controller
+[    3.959788] usb usb3: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    3.981325] usb usb4: Product: xHCI Host Controller
+[    3.984158] usb usb4: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    3.998120] xhci_hcd 0000:2c:00.0: xHCI Host Controller
+[    4.001085] xhci_hcd 0000:2c:00.0: new USB bus registered, assigned bus number 5
+[    4.005254] xhci_hcd 0000:2c:00.0: hcc params 0x200077c1 hci version 0x110 quirks 0x0000000200009810
+[    4.008876] xhci_hcd 0000:2c:00.0: xHCI Host Controller
+[    4.011865] xhci_hcd 0000:2c:00.0: new USB bus registered, assigned bus number 6
+[    4.014705] xhci_hcd 0000:2c:00.0: Host supports USB 3.1 Enhanced SuperSpeed
+[    4.023303] usb usb5: Product: xHCI Host Controller
+[    4.026094] usb usb5: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    4.051637] usb usb6: Product: xHCI Host Controller
+[    4.054378] usb usb6: Manufacturer: Linux 6.19.11-gentoo-gentoo-dist xhci-hcd
+[    4.150505] usb 1-8: new high-speed USB device number 2 using xhci_hcd
+[    4.358755] usbcore: registered new interface driver btusb
+[    4.478337] psmouse serio1: elantech: assuming hardware version 4 (with firmware version 0x5f2001)
+[    4.500449] usb 1-9: new full-speed USB device number 3 using xhci_hcd
+[    4.542506] elan_i2c 8-0015: unexpected iap version 0x00 (ic type: 0x29), firmware update will not work
+[    4.543151] elan_i2c 8-0015: Elan Touchpad: Module ID: 0x0029, Firmware: 0x0074, Sample: 0x0000, IAP: 0x0000
+[    4.754253] usb 1-14: new full-speed USB device number 4 using xhci_hcd
+[    4.892519] Bluetooth: hci0: Bootloader revision 0.3 build 0 week 24 2017
+[    4.894774] Bluetooth: hci0: Device revision is 1
+[    4.895541] Bluetooth: hci0: Secure boot is enabled
+[    4.896179] Bluetooth: hci0: OTP lock is enabled
+[    4.896811] Bluetooth: hci0: API lock is enabled
+[    4.897436] Bluetooth: hci0: Debug lock is disabled
+[    4.898052] Bluetooth: hci0: Minimum firmware build 1 week 10 2014
+[    4.898671] Loading firmware: intel/ibt-20-1-3.sfi
+[    4.899433] Bluetooth: hci0: Failed to load Intel firmware file intel/ibt-20-1-3.sfi (-2)
+[    4.900589] Bluetooth: hci0: Reading supported features failed (-56)
+[    4.901215] Bluetooth: hci0: Error reading debug features
+[    4.901830] Bluetooth: hci0: HCI LE Coded PHY feature bit is set, but its usage is not supported.
+[    4.904490] Bluetooth: hci0: Failed to read MSFT supported features (-56)
+[    5.269674] thinkpad_acpi: rfkill switch tpacpi_bluetooth_sw: radio is unblocked
+[    5.312348] Bluetooth: RFCOMM TTY layer initialized
+[    5.312917] Bluetooth: RFCOMM socket layer initialized
+[    5.313457] Bluetooth: RFCOMM ver 1.11
+[    5.314010] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    5.314577] Bluetooth: BNEP filters: protocol multicast
+[    5.315108] Bluetooth: BNEP socket layer initialized
+[    5.463140] Loading firmware: regulatory.db
+[    5.463637] Loading firmware: regulatory.db.p7s
+[    6.317367] Loading firmware: nvidia/595.58.03/gsp_tu10x.bin
+[13836.566622] usb 1-6: new full-speed USB device number 5 using xhci_hcd
+[13837.409925] usb 1-6: new full-speed USB device number 6 using xhci_hcd
+[14064.183231] usb 1-6: new full-speed USB device number 7 using xhci_hcd
+[14064.966560] usb 1-6: new full-speed USB device number 8 using xhci_hcd
+[14065.526560] usb 1-6: new full-speed USB device number 9 using xhci_hcd
+[14066.356559] usb 1-6: new full-speed USB device number 10 using xhci_hcd
+[14066.886559] usb 1-6: new full-speed USB device number 11 using xhci_hcd
+[14071.846569] usb 1-6: new full-speed USB device number 13 using xhci_hcd
+[14322.143216] usb 1-6: new full-speed USB device number 14 using xhci_hcd
+[14322.716547] usb 1-6: new full-speed USB device number 15 using xhci_hcd
+[14584.607422] Bluetooth: hci0: Bootloader revision 0.3 build 0 week 24 2017
+[14584.608427] Bluetooth: hci0: Device revision is 1
+[14584.608429] Bluetooth: hci0: Secure boot is enabled
+[14584.608430] Bluetooth: hci0: OTP lock is enabled
+[14584.608431] Bluetooth: hci0: API lock is enabled
+[14584.608432] Bluetooth: hci0: Debug lock is disabled
+[14584.608433] Bluetooth: hci0: Minimum firmware build 1 week 10 2014
+[14584.608437] Loading firmware: intel/ibt-20-1-3.sfi
+[14584.618406] Bluetooth: hci0: Found device firmware: intel/ibt-20-1-3.sfi
+[14584.618498] Bluetooth: hci0: Boot Address: 0x24800
+[14584.618500] Bluetooth: hci0: Firmware Version: 255-255.255
+[14586.832654] Bluetooth: hci0: Waiting for firmware download to complete
+[14586.833510] Bluetooth: hci0: Firmware loaded in 2163183 usecs
+[14586.833594] Bluetooth: hci0: Waiting for device to boot
+[14586.848402] Bluetooth: hci0: Device booted in 14525 usecs
+[14586.848409] Loading firmware: intel/ibt-20-1-3.ddc
+[14586.848535] Bluetooth: hci0: Found Intel DDC parameters: intel/ibt-20-1-3.ddc
+[14586.850412] Bluetooth: hci0: Applying Intel DDC parameters completed
+[14586.851413] Bluetooth: hci0: Firmware revision 0.3 build 83 week 7 2026
+[14586.854430] Bluetooth: hci0: HCI LE Coded PHY feature bit is set, but its usage is not supported.
+[14586.925431] Bluetooth: hci0: MSFT extension not registered
+[14940.486491] usb 1-6: new full-speed USB device number 16 using xhci_hcd
+[15574.577539] usb 1-6: new full-speed USB device number 17 using xhci_hcd
+[15576.470866] usb 1-6: new full-speed USB device number 18 using xhci_hcd
+[15577.050876] usb 1-6: new full-speed USB device number 19 using xhci_hcd
+[15591.311158] usb 1-6: new full-speed USB device number 20 using xhci_hcd
+[15593.234487] usb 1-6: new full-speed USB device number 21 using xhci_hcd
+[15627.781744] usb 1-6: new full-speed USB device number 22 using xhci_hcd
+[15629.725145] usb 1-6: new full-speed USB device number 23 using xhci_hcd
+[15630.271827] usb 1-6: new full-speed USB device number 24 using xhci_hcd
+[15630.831793] usb 1-6: new full-speed USB device number 25 using xhci_hcd
+[15631.661805] usb 1-6: new full-speed USB device number 26 using xhci_hcd
+[15632.188484] usb 1-6: new full-speed USB device number 27 using xhci_hcd
+[15633.718541] usb 1-6: new full-speed USB device number 28 using xhci_hcd
+[15635.601909] usb 1-6: new full-speed USB device number 29 using xhci_hcd
+[15640.851963] usb 1-1: new full-speed USB device number 30 using xhci_hcd
