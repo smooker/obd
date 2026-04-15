@@ -269,6 +269,184 @@ F0 FF 00 20   → 0x2000FFF0 (SRAM top, bootloader SP)
 
 ---
 
+## Извлечено от Autocom 2021.11 DLL-и (2026-04-15)
+
+Анализ на `VCILinkNET.dll`, `VCI_HW_native.dll`, `wcl.dll`, `FTD2XX_NET.dll`.
+
+### Baudrate detection
+
+Autocom **не ползва фи��сиран baud rate**! Прави автоматично baudrate detection:
+
+```
+Send bauddetect
+Response from second bauddetect
+BootApp bauddetect OK
+No response from bauddetect
+FAILED to write bauddetect
+```
+
+Два режима на serial port:
+- `Config port for normal application_cm3` — нормална работа
+- `Config port for bootmode_cm3` — bootloader mode
+
+Baudrate стойности намерени в DLL-ите:
+
+| Baud | VCILinkNET | VCI_HW_native | Бележка |
+|------|-----------|---------------|---------|
+| 9600 | 1 | — | |
+| **19200** | **13** | **10** | Най-много references — вероятен default |
+| 38400 | 5 | 3 | |
+| 57600 | 2 | 2 | |
+| 115200 | 6 | 1 | |
+| 460800 | 1 | 1 | Вероятно high-speed mode |
+
+**Хипотеза**: Init на 19200 → bauddetect → switch на 115200 ил�� 460800.
+
+FTDI комуникация:
+```
+FTDI port {0} opened
+FTDI port {0} closed
+FTDI Read 0 bytes (status{0})
+FTDI Read Failed
+COM{0} (USB)
+VCP port {0} opened          — Virtual COM Port
+Start bootmode by FTDI bitbang DONE
+```
+
+Ползва **FTDI D2XX** driver (директен USB), не COM port по default.
+`FTDI bitbang` за bootloader entry — toggle DTR/RTS/CTS за hardware reset.
+
+### Нови star команди (от DLL strings)
+
+#### `*2xx` — Device info
+| Команда | Описание |
+|---------|----------|
+| `*200` | Serial number |
+| `*201` | Firmware version |
+| `*203` | Voltage |
+| `*204_` | С аргумент — ? |
+| `*205` | ? |
+| `*20A` | Device name |
+| `*20E_` | С аргумент — ? |
+
+#### `*4xx` — ? (нова група)
+| Команда | Описание |
+|---------|----------|
+| `*400` | ? |
+| `*405` | ? |
+| `*406` | ? |
+| `*407` | ? |
+| `*408` | ? |
+| `*409` | ? |
+| `*40A` | ? |
+
+#### `*5xx`
+| Команда | Описание |
+|---------|----------|
+| `*599` | ? |
+
+#### `*6xx` — CAN / bus commands
+| Команда | Описание |
+|---------|----------|
+| `*605_` / `*605E` | ? |
+| `*606C1_41` | Periodic msg, CAN ID 0x41 |
+| `*606C1_62` | Periodic msg, CAN ID 0x62 |
+| `*606LEOBD11` | LEOBD 11-bit CAN |
+| `*606LEOBD29` | LEOBD 29-bit CAN (extended) |
+| `*607` | ? |
+| `*608_00_00_03` | ? variant |
+| `*608_21_08_00_00_00` | Param read с extra args |
+| `*608_31` | **UDS RoutineControl ($31)** |
+| `*608_43_FF` | UDS ClearDTC? или response |
+| `*60A` | ? |
+| `*60C` | ? |
+| `*650` / `*651` / `*652` | ? |
+| `*65B_6E_250` | ? (250=baud? CAN timing?) |
+| `*66A_0_250_7DF_000_000_0#` | CAN config 250kbps 11-bit broadcast |
+| `*66A_0_500_7DF_000_000_0#` | CAN config 500kbps 11-bit broadcast |
+| `*66A_1_250_18DB33F1_00000000_000_0#` | CAN config 250kbps **29-bit** |
+| `*66A_1_500_18DB33F1_00000000_000_0#` | CAN config 500kbps **29-bit** |
+| `*6DA` / `*6DB` / `*6DC` / `*6dd` | ? |
+
+**`*66A` vs `*668`**: `*66A` е simplified CAN config (без payload, с `#` term).
+`*668` е пълен CAN config с embedded payload + checksum.
+
+#### `*9xx` — System / bootloader
+| Команда | Описание |
+|---------|----------|
+| `*913` | ? |
+| `*915` | Bootloader entry (confirmed: `SetBootMode by software command (*915)`) |
+| `*91E_name_{0}` | Set device name |
+| `*91E_num` | Set device number |
+| `*923` | ? |
+| `*928_{X}_{X}_{X}_{X}` | 4 hex args — firmware update block? |
+| `*983_{0}` | ? |
+| `*984` / `*986` / `*987` | ? |
+| `*989_{0}{1}` | ? |
+| `*999` | Reset |
+
+### SecurityAccess ($27) — от DLL strings
+
+```
+#! In CMD_SEND_KEY, error in creating key process! Is seed correct?
+Question to car with appended security key has not appeared!
+*** (runSgwProtocol) The unlock procedure not executed
+--- (openSgwChannel) Check status to verify that it's unlocked.
+--- (openSgwChannel) Status is unlocked!!!
+-----Security Access answer:
+-----Security Access bnrG:
+.writeUnlock->:
+.writeUnlock<-:
+<Seed>
+</Seed>
+```
+
+- SGW = Security GateWay protocol
+- Seed е в **XML** формат (`<Seed>...</Seed>`)
+- `CMD_SEND_KEY` — функция за изчисляване на key от seed
+- `bnrG` — вероятно identifier на seed-key алгоритъма
+- `writeUnlock` — запис на unlock команда
+
+**TODO**: decompile VCILinkNET.dll с mono/ilspycmd за пълния seed→key алгоритъм.
+
+### Mitsubishi init sequences
+
+```
+MITSUBISHI1SEQ
+MITSUBISHI2SEQ
+MITSUBISHI3SEQ
+MITSUBISHI4SEQ
+MITSUBISHI5SEQ
+```
+
+5 различни init sequence-а за Mitsubishi — вероятно за различни протоколи:
+1. CAN 500kbps 11-bit (нашият ASX 4N13)
+2. CAN 250kbps 11-bit
+3. CAN 29-bit (extended)
+4. KWP2000 / ISO 14230
+5. ISO 9141 / 5-baud init
+
+### Bluetooth (от wcl.dll)
+
+```
+BTHENUM
+\Device\BtPort
+Connection exists.
+Connection is active.
+Connection was rejected by device.
+Connection was terminated by user.
+Device is not connected.
+PTosBtHSPAPI.dll
+HARDWARE\DEVICEMAP\SERIALCOMM
+SYSTEM\CurrentControlSet\Enum\BTHENUM\{00001124-0000-1000-8000-00805f9b34fb}
+Software\Microsoft\BluetoothAuthenticationAgent
+```
+
+BT ползва Windows Bluetooth stack (BTHENUM) и SPP (Serial Port Profile) — `\Device\BtPort`.
+На Linux еквивалентът е rfcomm bind.
+
+---
+
 ## Бъдещи стъпки
 
 1. **Дизасемблиране** на `OBD_VCI_plus.bin` с `arm-none-eabi-objdump` — пълен control flow на command parser

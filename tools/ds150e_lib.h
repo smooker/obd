@@ -72,6 +72,10 @@ int ds_can_config(int bus, int rate, const char *txid, const char *rxid,
 /* Standard OBD-II CAN config (bus 0, 500kbps, 7E0/7E8) */
 int ds_can_config_obd2(char *buf, int bufsz);
 
+/* Full CAN config with checksum — exact replay from capture
+ * *668_0_500_7E0_7E8_000_01C_02_3E_02_00_00_00_00_00_080_1A_87 */
+int ds_can_config_full(char *buf, int bufsz);
+
 /* ── Periodic message slot ───────────────────────────────── */
 
 /* *606<slot>_<canid>_<b1>_<b2>_..._<b8>_<chk>
@@ -88,8 +92,31 @@ int ds_tester_present(char *buf, int bufsz);
 
 /* ── ECU communication ───────────────────────────────────── */
 
-/* *608_18_00_FF_00 → ECU init */
+/* *608_18_00_FF_00 → ReadDTCInformation */
 int ds_ecu_init(char *buf, int bufsz);
+
+/* *609_0_01C_01C_10_92 → DiagnosticSessionControl */
+int ds_session_physical(char *buf, int bufsz);
+
+/* *609_0_7DF_7DF_10_92 → DiagnosticSessionControl broadcast */
+int ds_session_broadcast(char *buf, int bufsz);
+
+/* *608_30_51_07_00 → flow control / next step */
+int ds_flow_control(char *buf, int bufsz);
+
+/* ── Full vehicle init — Mitsubishi ASX 4N13 ────────────── */
+
+/* Complete init sequence from capture 2026-04-14:
+ * 1. *668 full CAN config (500kbps, 7E0/7E8, checksum)
+ * 2. *609 session physical (01C, $10 $92)
+ * 3. *609 session broadcast (7DF, $10 $92)
+ * 4. *606B001 TesterPresent keepalive (7DF)
+ * 5. *608_18 ReadDTCInformation
+ * 6. *608_30 flow control
+ *
+ * Prints each step + response. Returns 0=ok, -1=fail.
+ * ECU responds with part number 1860C481 on success. */
+int ds_asx_init(void);
 
 /* *608_21_<idx> → *97 <idx> <bytes>
  * Read ECU parameter by index.

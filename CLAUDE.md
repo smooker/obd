@@ -140,7 +140,8 @@ push-ване още. Repo координати са налични за мом�
 - Софтуерът ползва `9mit_engine_4n14` profile (4N13 и 4N14 споделят платформа)
 - Outlander profiles покриват: ABS, AC, gearbox, meter, SRS, ETACS, AWC, KOS/IMMO
 
-### ECU — DENSO 275700-4772 / 1860C480
+### ECU — DENSO 275700-4772 / 1860C481
+- Mitsubishi PN от ECU отговор: **1860C481** (потвърдено от capture 2026-04-14)
 - MCU: Renesas V850ES/Fx3 (R4F70580SV), 1MB flash, 93C86 EEPROM
 - CAN: 500 kbps, standard 11-bit IDs, 7E0/7E8 (engine ECU), UDS (ISO 14229)
 - Injector: DENSO 295050-0120 / 1465A323, QR code 30 chars

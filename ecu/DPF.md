@@ -116,6 +116,37 @@ The exact Routine ID is embedded in MUT-III software and is not publicly
 documented. Common patterns for DENSO diesel ECUs suggest it may be in the
 range 0xFF00-0xFFFF (manufacturer-specific routines) or 0x0200-0x02FF.
 
+## DPF Replacement Reset
+
+When the DPF is physically replaced, the ECU must be informed to reset
+accumulated ash counter, learned pressure correction, and distance counters.
+
+### Procedure (MUT-III / Autocom DS150E)
+1. Connect diagnostic tool, ignition ON
+2. Navigate to: Engine → Special Functions → DPF → **"DPF replacement"**
+3. Tool sends SecurityAccess ($27) unlock, then RoutineControl ($31)
+4. ECU resets: ash accumulation (g), soot accumulation, learned diff pressure
+   correction, km since last regen, regen count
+
+### Candidate UDS Routine IDs (from DS150E firmware strings)
+
+```
+608h31 B8 00 00#          ← routine $B8, possibly DPF reset/clear
+608h31 B8 01 03#          ← routine $B8, startRoutine (01) with param 03
+608h31 BA 01 03#          ← routine $BA, startRoutine (01) with param 03
+608h31 B9 01 03 02#       ← routine $B9, with extra params
+608h31 B9 01 03 00 00#    ← routine $B9, variant
+608h31 BB 01 03 00 00 00 06 46 22 00 BA#  ← routine $BB, long payload
+```
+
+Routine IDs $B8/$B9/$BA/$BB are hardcoded in DS150E VCI+ firmware.
+One of these is likely the DPF replacement reset. **TODO**: sniff Autocom
+software performing DPF replacement to identify exact routine.
+
+### SecurityAccess ($27)
+Almost certainly required before any DPF write/routine operation on DENSO ECUs.
+Typical Mitsubishi security level: $01 or $61.
+
 ## DPF Driving Regeneration (Alternative to MUT-III)
 
 If MUT-III is not available, and soot is below the critical threshold:

@@ -403,6 +403,106 @@ permissions или wireshark пакета без USB capture support. Не см�
 
 ---
 
+## Capture 2026-04-14 — ПЪЛНА init sequence (binary sniff)
+
+Capture `20260414_211824` от `sniff_full.py` — binary usbmon, без truncation.
+DS150E свързан към Mitsubishi ASX 2014 4N13 през OBD-II.
+
+### Пълна init последователност (host → DS150E → ECU)
+
+```
+Стъпка 1: CAN config
+*668_0_500_7E0_7E8_000_01C_02_3E_02_00_00_00_00_00_080_1A_87
+
+Стъпка 2: Session setup (physical addressing)
+*609_0_01C_01C_10_92
+
+Стъпка 3: Session setup (broadcast/functional)
+*609_0_7DF_7DF_10_92
+
+Стъпка 4: Periodic TesterPresent (broadcast)
+*606B001_7DF_02_3E_02_00_00_00_00_00
+
+Стъпка 5: Read DTCs
+*608_18_00_FF_00
+
+Стъпка 6: (UDS)
+*608_30_51_07_00
+```
+
+### Декодиране на `*668` — ПЪЛЕН (вече не truncated!)
+
+```
+*668_0_500_7E0_7E8_000_01C_02_3E_02_00_00_00_00_00_080_1A_87
+     │  │    │    │    │    │   │                       │   │  │
+     │  │    │    │    │    │   │                       │   │  └─ checksum byte 2
+     │  │    │    │    │    │   │                       │   └─── checksum byte 1
+     │  │    │    │    │    │   │                       └─────── 080 = 128 (timeout? ms?)
+     │  │    │    │    │    │   └── 02_3E_02_00_00_00_00_00 = TesterPresent payload (8 bytes)
+     │  │    │    │    │    └────── 01C = 28 (ISO-TP BS? P2 timeout? STmin?)
+     │  │    │    │    └─────────── 000 = addressing mode (0=standard 11-bit)
+     │  │    │    └──────────────── 7E8 = RX CAN ID (engine ECU response)
+     │  │    └───────────────────── 7E0 = TX CAN ID (engine ECU request)
+     │  └────────────────────────── 500 = bitrate 500 kbps
+     └───────────────────────────── 0 = bus index
+```
+
+**Checksum `1A_87`**: два байта, вероятно CRC-16 или sum mod 256 на полетата.
+
+### Декодиране на `*609` — session control
+
+```
+*609_0_01C_01C_10_92     ← physical: DiagnosticSessionControl ($10), subfunction $92?
+*609_0_7DF_7DF_10_92     ← broadcast: same на functional address
+```
+
+| Поле | Стойност | Значение |
+|------|----------|----------|
+| `0` | bus index | bus 0 |
+| `01C`/`7DF` | TX CAN ID | 01C=28 (?) или 7DF=broadcast |
+| `01C`/`7DF` | RX CAN ID | same (loopback?) |
+| `10` | UDS service | $10 = DiagnosticSessionControl |
+| `92` | sub-function | $92 = Mitsubishi extended session? |
+
+**Забележка**: `*609_0_01C_01C` е странен — CAN ID 0x01C не е стандартен OBD. Може да е timing параметър (28 dec), не CAN ID.
+
+### ECU отговор — идентификация
+
+```
+Response bytes: FF 30 30 C4 81 01 31 38 36 30 43 34 38 31 20 20
+ASCII:                              1  8  6  0  C  4  8  1
+```
+
+**ECU part number: `1860C481`** (не C480 — различна software ревизия или calibration)
+
+### Декодиране на `*606B001` — periodic TesterPresent (пълен!)
+
+```
+*606B001_7DF_02_3E_02_00_00_00_00_00
+     │     │   └──────────────────── 8 bytes CAN payload: TesterPresent
+     │     └────────────────────── 7DF = broadcast CAN ID
+     └──────────────────────────── B001 = slot ID
+```
+
+Без trailing checksum тук (или е в binary capture-а на друго място).
+
+### `*608_18_00_FF_00` — ReadDTCInformation
+
+UDS service $18 = ReadDTCInformation:
+- subfunction $00 = reportNumberOfDTCByStatusMask
+- status mask $FF = всички DTCs
+- $00 = padding
+
+ECU response: `97 116 243 204 0 0 255 96 48 0 120 96 0 0 0 0 0 0 0 0 0`
+= `61 74 F3 CC 00 00 FF 60 30 00 78 60 00 00 00 00 00 00 00 00 00`
+
+### `*608_30_51_07_00`
+
+Може да е:
+- UDS $30 = InputOutputControlByIdentifier? Не стандартно.
+- Autocom-specific: $30 $51 = нещо друго
+- Или: flow control frame (FC) с BS=0x51=81, STmin=7
+
 ## Следваща капитулация (TODO)
 
 1. **Чист init capture**: пуснем `sniff_full.py` ПРЕДИ да attach-нем USB-то

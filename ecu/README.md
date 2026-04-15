@@ -25,7 +25,7 @@
 | Field | Value |
 |-------|-------|
 | **DENSO part number** | 275700-4772 |
-| **Mitsubishi part number** | 1860C480 |
+| **Mitsubishi part number** | **1860C481** (confirmed from ECU response, capture 2026-04-14) |
 | **MCU** | Renesas V850ES/Fx3 (R4F70580SV) |
 | **Package** | QFP-256 |
 | **Flash size** | 1 MB (confirmed by BitEdit SH7058 module) |
