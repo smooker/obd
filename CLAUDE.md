@@ -164,3 +164,129 @@ push-ване още. Repo координати са налични за мом�
   по-малко. Дори на Stage 1 такова ограничение е вредно: води до
   сплитване в множество файлове за нищо или до съкращаване което
   жертва четимост.
+
+## DS150E hardware notes (findings 2026-04-16)
+
+**Vendor: Autocom / Delphi -- шведска фирма** (Autocom от Trollhättan). Обяснява професионалния engineering -- over-engineered в хубавия смисъл, Volvo mentality за automotive tool. Използва се и от професионални сервизи с десетилетия.
+
+### Dual operation modes
+
+**1. Live USB sniff** -- real-time diagnostic сесия
+- Командите и отговорите текат през USB
+- Interactive: инжектираш ECU заявки, четеш отговорите
+- Това е което досега анализираме
+
+**2. REC mode (SD card)** -- on-the-fly data logging
+- Бутон **REC** на самото устройство
+- Оставяш DS150E в колата, той записва сам
+- Анализ after the fact -- кога какво е станало
+- Sensor values, fault conditions, environment over time
+- USB sniff **не** хваща тези записи (защото са локални)
+
+### SD card access
+
+Картата си стои на топло вътре -- **не трябва да я вадим**. Четем remotely:
+- **USB commands** -- file listing, read by offset, streaming dump
+- **Bluetooth commands** -- същото през BLE (виж по-долу)
+
+Протоколът трябва да има:
+- `LS` equivalent за listing на recordings
+- `READ` by offset за partial/resumable fetch
+- Timestamp query за selective download
+
+### Built-in battery -- множество предназначения
+
+DS150E има вградена батерия, не е просто OBD cable:
+
+1. **RTC backup** -- timestamp-ите на records трябва да се keep-ват
+   - Всеки record е timestamped чрез internal RTC
+   - Батерията пази часовника когато няма OBD захранване
+   - Но RTC може да drift/reset -- **нужни са SET_TIME / GET_TIME команди** за периодичен sync с host
+
+2. **Safe SD writes** -- защита срещу corrupt при power loss
+   - Automotive environment: cranking voltage drops, ignition cycles
+   - Battery-backed write circuit → graceful flush на last record
+   - Finalization на FAT/exFAT metadata
+   - Safe unmount на filesystem
+
+3. **Bluetooth radio** -- **работи дори без OBD захранване**!
+   - BT stack винаги on (pairing, advertising, listening)
+   - Може да се pair-ва/конфигурира без да е в колата
+   - Някой на 10m може да attempt pairing (security consideration)
+   - За нас -- достъп до SD без колата да е paleна
+
+### Use case: remote recording analysis
+
+1. Оставяш DS150E в колата с REC натиснат
+2. Караш, устройството записва on SD
+3. Сядаш с laptop/phone близо до колата (парлинг)
+4. BT connect → download recordings
+5. Анализираш offline
+
+Дори от магистрален паркинг -- кола спряна, стоиш 10m далече, четеш записи през BT.
+
+## System setup
+
+### ftdi_sio built-in handling (2026-04-16)
+
+Kernel-ът има `CONFIG_USB_SERIAL_FTDI_SIO=y` (built-in, не модул). При enumerate на DS150E:
+
+```
+usb 1-1: New USB device found, idVendor=0403, idProduct=d6da
+usb 1-1: Manufacturer: FTDI
+usb 1-1: Product: Autocom CDP+ USB
+```
+
+...нещо се опитва да `modprobe ftdi_sio` и получава `Error: Driver 'ftdi_sio' is already registered, aborting... usbcore: error -16`. Auto-attach понякога не довежда до `/dev/ttyUSB0` при първи plug-in.
+
+**Fix -- blacklist-ваме modprobe zaarediuvane:**
+
+```
+echo "blacklist ftdi_sio" > /etc/modprobe.d/ftdi-builtin.conf
+```
+
+Това не махa built-in драйвъра (който си работи), а спира modprobe да се опитва да го зарежда като модул. Auto-attach на kernel-a minava чисто.
+
+### udev rules за DS150E
+
+За да се създаде `/dev/autocom` symlink и user access без root:
+
+```
+echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="d6da", MODE="0666", GROUP="dialout"' > /etc/udev/rules.d/99-autocom.rules
+echo 'KERNEL=="ttyUSB[0-9]*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="d6da", SYMLINK+="autocom", MODE="0666", GROUP="dialout"' >> /etc/udev/rules.d/99-autocom.rules
+udevadm control --reload-rules
+udevadm trigger
+```
+
+**Резултат:**
+- `/dev/autocom` → symlink към `ttyUSB0` (stable име, не зависи от U-Sbus order)
+- mode 0666 + group dialout
+- smooker е в dialout → няма нужда от sudo за `cat/minicom/screen /dev/autocom`
+
+### TODO
+
+- **Идентифицирай командите:**
+  - `GET_TIME` / `SET_TIME` (RTC management)
+  - `LS` за SD listing
+  - `READ` за file fetch
+  - `DELETE` или overwrite за cleanup
+  
+- **BT discovery:**
+  - Намери BT device name / MAC на DS150E
+  - Hunt със `hcitool`, `bluetoothctl`, `gatttool`
+  - GATT services/characteristics mapping
+  
+- **SD format reverse engineering:**
+  - FAT/exFAT или custom?
+  - Record format -- header, timestamp, ECU ID, payload
+  - Mapping към live USB traffic (overlap в протокола?)
+  
+- **RTC sync:**
+  - Първо SET_TIME на известна стойност
+  - После GET_TIME → calibrate drift
+  - Периодичен sync ако е нужно
+
+- **Security consideration:**
+  - BT always-on → exposure
+  - Паролa/pairing защита?
+  - Може ли някой друг да четe нашите записи?

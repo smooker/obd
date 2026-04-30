@@ -41,7 +41,7 @@ int ds_open(const char *dev)
 	tio.c_iflag &= ~(IXON | IXOFF | IXANY);
 
 	tio.c_cc[VMIN] = 0;
-	tio.c_cc[VTIME] = 20; /* 2s default */
+	tio.c_cc[VTIME] = 2; /* 200ms per read() — timeout_ms controls total */
 
 	tcsetattr(fd, TCSANOW, &tio);
 	tcflush(fd, TCIOFLUSH);
@@ -73,6 +73,8 @@ int ds_cmd(const char *cmd, char *buf, int bufsz, int timeout_ms)
 	snprintf(txbuf, sizeof(txbuf), "%s\r", cmd);
 	tcflush(fd, TCIOFLUSH);
 
+	fprintf(stderr, "  >> %s\n", cmd);
+
 	int n = write(fd, txbuf, strlen(txbuf));
 	if (n < 0) return -1;
 
@@ -99,6 +101,7 @@ int ds_cmd(const char *cmd, char *buf, int bufsz, int timeout_ms)
 	while (total > 0 && (buf[total-1] == '\r' || buf[total-1] == '\n'))
 		buf[--total] = 0;
 
+	fprintf(stderr, "  << n=%d '%s'\n", total, total > 0 ? buf : "(empty)");
 	return total;
 }
 
@@ -176,9 +179,17 @@ int ds_can_config(int bus, int rate, const char *txid, const char *rxid,
                   char *buf, int bufsz)
 {
 	char cmd[256];
-	snprintf(cmd, sizeof(cmd), "*668_%d_%d_%s_%s_000_01C_02_3E_02_00_00_00_00_00",
+	/* full *668 sequence from Windows capture: trailing _080_1A_87 required */
+	snprintf(cmd, sizeof(cmd), "*668_%d_%d_%s_%s_000_01C_02_3E_02_00_00_00_00_00_080_1A_87",
 	         bus, rate, txid, rxid);
-	return ds_cmd(cmd, buf, bufsz, 5000);
+	/* *607 closes any active CAN session before reconfiguring */
+	char tmp[64];
+	ds_cmd("*607", tmp, sizeof(tmp), 2000);
+
+	int n = ds_cmd(cmd, buf, bufsz, 8000);
+	if (n <= 0)
+		return -1;
+	return n;
 }
 
 int ds_can_config_obd2(char *buf, int bufsz)
@@ -211,6 +222,18 @@ int ds_tester_present(char *buf, int bufsz)
 int ds_ecu_init(char *buf, int bufsz)
 {
 	return ds_cmd("*608_18_00_FF_00", buf, bufsz, 5000);
+}
+
+int ds_session_physical(char *buf, int bufsz)
+{
+	/* *609_0_01C_01C_10_92 — DiagnosticSessionControl physical (01C = engine ECU) */
+	return ds_cmd("*609_0_01C_01C_10_92", buf, bufsz, 3000);
+}
+
+int ds_session_broadcast(char *buf, int bufsz)
+{
+	/* *609_0_7DF_7DF_10_92 — DiagnosticSessionControl broadcast */
+	return ds_cmd("*609_0_7DF_7DF_10_92", buf, bufsz, 3000);
 }
 
 int ds_ecu_read_param(uint8_t idx, uint8_t *data, int datasz)
